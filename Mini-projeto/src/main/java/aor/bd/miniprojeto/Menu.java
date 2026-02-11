@@ -2,10 +2,12 @@ package aor.bd.miniprojeto;
 
 import java.util.Scanner;
 
-public class Menu {
+public class Menu implements AutoCloseable {
 
-public void MenuPrincial(Scanner teclado){
-int opcao = -1;
+public void MenuPrincipal(Scanner teclado){
+
+
+    int opcao = -1;
 
     do {
 
@@ -23,7 +25,7 @@ int opcao = -1;
 
             case 1 -> { // adicionar musica
             }
-            case 2 -> { // Editar
+            case 2 -> { //AppMusica.editarTituloMusica(2, teclado);// Editar
             }
             case 3 -> { // Remover
             }
@@ -36,4 +38,8 @@ int opcao = -1;
     }while (opcao != 0);
 }
 
+    @Override
+    public void close() throws Exception {
+
+    }
 }

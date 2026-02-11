@@ -1,6 +1,8 @@
 package aor.bd.miniprojeto;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AppMusica implements AutoCloseable {
 
@@ -19,16 +21,6 @@ public class AppMusica implements AutoCloseable {
     public void close() throws SQLException {
         if (this.conn != null) {
             this.conn.close();
-        }
-    }
-
-    public static void main(String[] args) {
-        try (AppMusica app = new AppMusica()) {
-            adicionarMusica(3, "Deslocado", 1978, "Napa");
-
-            //adicionarAutor("Roberto Carlos");
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
     }
 
@@ -87,6 +79,82 @@ public class AppMusica implements AutoCloseable {
         }
     }
 
+    public static Map<String, Object> buscarMusicaPorId(int idBusca) throws SQLException {
+        String sql = "SELECT id, titulo, anoMusica, autor_nome FROM musica WHERE id = ?";
+
+        try (PreparedStatement stm = conn.prepareStatement(sql)) {
+            stm.setInt(1, idBusca);
+
+            try (ResultSet rs = stm.executeQuery()) {
+                if (rs.next()) {
+                    Map<String, Object> registro = new HashMap<>();
+                    // Guardamos cada coluna no Map
+                    registro.put("id", rs.getInt("id"));
+                    registro.put("titulo", rs.getString("titulo"));
+                    registro.put("ano", rs.getInt("anoMusica"));
+                    registro.put("autor", rs.getString("autor_nome"));
+
+                    System.out.println("Música encontrada");
+
+                    return registro;
+                }
+            }
+        }
+        System.out.println("Música não encontrada");
+        return null;
+        // Caso não encontre nada
+    }
+
+    public void editarTituloMusica(int idMusica, String novoTitulo) throws SQLException {
+        // SQL para atualizar apenas o título de um ID específico
+        String sql = "UPDATE musica SET titulo = ? WHERE id = ?";
+
+        try (PreparedStatement stm = conn.prepareStatement(sql)) {
+            stm.setString(1, novoTitulo);
+            stm.setInt(2, idMusica);
+
+            int linhasAfetadas = stm.executeUpdate();
+
+            if (linhasAfetadas > 0) {
+                System.out.println("Sucesso: O título da música ID " + idMusica + " foi atualizado para: " + novoTitulo);
+            } else {
+                System.out.println("Aviso: Nenhuma música encontrada com o ID " + idMusica);
+            }
+        }
+    }
+
+    public void deletarMusica(int idMusica) throws SQLException {
+        String sql = "DELETE FROM musica WHERE id = ?";
+
+        try (PreparedStatement stm = conn.prepareStatement(sql)) {
+            stm.setInt(1, idMusica);
+
+            int linhasAfetadas = stm.executeUpdate();
+
+            if (linhasAfetadas > 0) {
+                System.out.println("Sucesso: A música com ID " + idMusica + " foi removida.");
+            } else {
+                System.out.println("Aviso: Nenhuma música encontrada com o ID " + idMusica + " para remover.");
+            }
+        }
+    }
+
+    public void exibirDetalhesMusica(int idMusica) throws SQLException {
+        // Reutiliza o metodo de busca criado antes
+        Map<String, Object> musica = buscarMusicaPorId(idMusica);
+
+        System.out.println("\n=== DETALHES DA MÚSICA ===");
+        if (musica != null) {
+            System.out.println("ID:        " + musica.get("id"));
+            System.out.println("Título:    " + musica.get("titulo"));
+            System.out.println("Ano:       " + musica.get("ano"));
+            System.out.println("Autor:     " + musica.get("autor"));
+            System.out.println("==========================\n");
+        } else {
+            System.out.println("Erro: Música com ID " + idMusica + " não encontrada na base de dados.");
+            System.out.println("==========================\n");
+        }
+    }
 
 }
 
