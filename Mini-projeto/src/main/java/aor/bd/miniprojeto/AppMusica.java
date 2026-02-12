@@ -42,7 +42,7 @@ public class AppMusica implements AutoCloseable {
         garantirExistenciaAutor(autor);
 
         // O ? serve como placeholder para os valores reais
-        String sql = "INSERT INTO musica (id ,titulo, anoMusica,genero, autor_nome) VALUES (?,?, ?, ?)";
+        String sql = "INSERT INTO musica (titulo, anoMusica, autor_nome) VALUES (?, ?, ?)";
 
         int novoId = gerarProximoId();
 
@@ -61,7 +61,7 @@ public class AppMusica implements AutoCloseable {
         }
     }
 
-    public void adicionarMusicaComGenero(String titulo, int ano, String nomeAutor, String nomeGenero) throws SQLException {
+    public static void adicionarMusicaComGenero(String titulo, int ano, String nomeAutor, String nomeGenero) throws SQLException {
         int novoId = gerarProximoId(); // Usando o metodo que criamos antes
 
         // 1. Garante que as entidades pai existem para não dar erro de FK
@@ -69,12 +69,13 @@ public class AppMusica implements AutoCloseable {
         garantirExistenciaGenero(nomeGenero);
 
         // 2. Insere na tabela 'musica'
-        String sqlMusica = "INSERT INTO musica (id, titulo, anomusica, autor_nome) VALUES (?, ?, ?, ?)";
+        String sqlMusica = "INSERT INTO musica (titulo, anomusica, autor_nome, genero) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stm = conn.prepareStatement(sqlMusica)) {
             stm.setInt(1, novoId);
             stm.setString(2, titulo);
             stm.setInt(3, ano);
             stm.setString(4, nomeAutor);
+            stm.setString(5,nomeGenero);
             stm.executeUpdate();
         }
 
@@ -110,7 +111,7 @@ public class AppMusica implements AutoCloseable {
     }
 
     // Metodo para verificar se o genero existe. Se não existir, ele cria.
-    private void garantirExistenciaGenero(String nomeGenero) throws SQLException {
+    private static void garantirExistenciaGenero(String nomeGenero) throws SQLException {
         String sql = "INSERT INTO genero (nome) VALUES (?) ON CONFLICT (nome) DO NOTHING";
         try (PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setString(1, nomeGenero);
@@ -144,7 +145,7 @@ public class AppMusica implements AutoCloseable {
         // Caso não encontre nada
     }
 
-    public void editarTituloMusica(int idMusica, String novoTitulo) throws SQLException {
+    public static void editarTituloMusica(int idMusica, String novoTitulo) throws SQLException {
         // SQL para atualizar apenas o título de um ID específico
         String sql = "UPDATE musica SET titulo = ? WHERE id = ?";
 
