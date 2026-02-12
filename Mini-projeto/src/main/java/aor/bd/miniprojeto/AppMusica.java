@@ -6,9 +6,9 @@ import java.util.Map;
 
 public class AppMusica implements AutoCloseable {
 
-    private final static String URL = "jdbc:postgresql://localhost:5455/projeto_musicas";
+    private final static String URL = "jdbc:postgresql://localhost:5432/projeto_musicas";
     private final static String USER = "postgres";
-    private final static String PASSWORD = "postgres";
+    private final static String PASSWORD = "Catara100.";
     private static Connection conn;
 
 
@@ -69,16 +69,14 @@ public class AppMusica implements AutoCloseable {
         garantirExistenciaGenero(nomeGenero);
 
         // 2. Insere na tabela 'musica'
-        String sqlMusica = "INSERT INTO musica (titulo, anomusica, autor_nome, genero) VALUES (?, ?, ?, ?)";
+        String sqlMusica = "INSERT INTO musica (id, titulo, anomusica, autor_nome) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stm = conn.prepareStatement(sqlMusica)) {
             stm.setInt(1, novoId);
             stm.setString(2, titulo);
             stm.setInt(3, ano);
             stm.setString(4, nomeAutor);
-            stm.setString(5,nomeGenero);
             stm.executeUpdate();
         }
-
         // 3. Cria a ligação na tabela 'genero_musica'
         String sqlLigacao = "INSERT INTO genero_musica (genero_nome, musica_id) VALUES (?, ?)";
         try (PreparedStatement stm = conn.prepareStatement(sqlLigacao)) {
@@ -134,9 +132,8 @@ public class AppMusica implements AutoCloseable {
                     registro.put("ano", rs.getInt("anoMusica"));
                     registro.put("autor", rs.getString("autor_nome"));
 
-                    System.out.println("Música encontrada");
 
-                    return registro;
+                    return registro  ;
                 }
             }
         }
@@ -179,7 +176,7 @@ public class AppMusica implements AutoCloseable {
         }
     }
 
-    public void exibirDetalhesMusica(int idMusica) throws SQLException {
+    public static void exibirDetalhesMusica(int idMusica) throws SQLException {
         // Reutiliza o metodo de busca criado antes
         Map<String, Object> musica = buscarMusicaPorId(idMusica);
 
