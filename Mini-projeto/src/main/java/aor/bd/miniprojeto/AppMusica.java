@@ -37,16 +37,18 @@ public class AppMusica implements AutoCloseable {
 
     }
 
-    public static void adicionarMusica(int id,String titulo, int ano, String autor) throws SQLException{
+    public static void adicionarMusica(String titulo, int ano, String autor) throws SQLException{
 
         garantirExistenciaAutor(autor);
 
         // O ? serve como placeholder para os valores reais
-        String sql = "INSERT INTO musica (id ,titulo, anoMusica, autor_nome) VALUES (?,?, ?, ?)";
+        String sql = "INSERT INTO musica (id ,titulo, anoMusica,genero, autor_nome) VALUES (?,?, ?, ?)";
+
+        int novoId = gerarProximoId();
 
         try(PreparedStatement stm = conn.prepareStatement(sql)){
             // Define os valores nos lugares dos pontos de interrogação
-            stm.setInt(1, id);
+            stm.setInt(1, novoId);
             stm.setString(2, titulo);
             stm.setInt(3, ano);
             stm.setString(4, autor);
@@ -57,6 +59,34 @@ public class AppMusica implements AutoCloseable {
                 System.out.println("Música adicionada com sucesso!");
             }
         }
+    }
+
+    public void adicionarMusicaComGenero(String titulo, int ano, String nomeAutor, String nomeGenero) throws SQLException {
+        int novoId = gerarProximoId(); // Usando o metodo que criamos antes
+
+        // 1. Garante que as entidades pai existem para não dar erro de FK
+        garantirExistenciaAutor(nomeAutor);
+        garantirExistenciaGenero(nomeGenero);
+
+        // 2. Insere na tabela 'musica'
+        String sqlMusica = "INSERT INTO musica (id, titulo, anomusica, autor_nome) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement stm = conn.prepareStatement(sqlMusica)) {
+            stm.setInt(1, novoId);
+            stm.setString(2, titulo);
+            stm.setInt(3, ano);
+            stm.setString(4, nomeAutor);
+            stm.executeUpdate();
+        }
+
+        // 3. Cria a ligação na tabela 'genero_musica'
+        String sqlLigacao = "INSERT INTO genero_musica (genero_nome, musica_id) VALUES (?, ?)";
+        try (PreparedStatement stm = conn.prepareStatement(sqlLigacao)) {
+            stm.setString(1, nomeGenero);
+            stm.setLong(2, novoId);
+            stm.executeUpdate();
+        }
+
+        System.out.println("Música e Género associados com sucesso!");
     }
 
     // Metodo para verificar se o autor existe. Se não existir, ele cria.
@@ -76,6 +106,15 @@ public class AppMusica implements AutoCloseable {
                     System.out.println("Autor '" + nomeAutor + "' adicionado.");
                 }
             }
+        }
+    }
+
+    // Metodo para verificar se o genero existe. Se não existir, ele cria.
+    private void garantirExistenciaGenero(String nomeGenero) throws SQLException {
+        String sql = "INSERT INTO genero (nome) VALUES (?) ON CONFLICT (nome) DO NOTHING";
+        try (PreparedStatement stm = conn.prepareStatement(sql)) {
+            stm.setString(1, nomeGenero);
+            stm.executeUpdate();
         }
     }
 
@@ -156,6 +195,21 @@ public class AppMusica implements AutoCloseable {
         }
     }
 
+    private static int gerarProximoId() throws SQLException {
+        // Busca o maior ID atual na tabela musica
+        String sql = "SELECT MAX(id) FROM musica";
+
+        try (PreparedStatement stm = conn.prepareStatement(sql);
+             ResultSet rs = stm.executeQuery()) {
+
+            if (rs.next()) {
+                int maxId = rs.getInt(1); // Pega o valor da primeira coluna (MAX)
+                return maxId + 1; // Incrementa 1
+            }
+        }
+        // Se a tabela estiver vazia, retornamos 1 como o primeiro ID
+        return 1;
+    }
 }
 
 
