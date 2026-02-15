@@ -42,7 +42,7 @@ public class AppMusica implements AutoCloseable {
         garantirExistenciaAutor(autor);
 
         // O ? serve como placeholder para os valores reais
-        String sql = "INSERT INTO musica (titulo, anoMusica, autor_nome) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO musica (id,titulo, anoMusica, autor_nome) VALUES (?, ?, ?, ?)";
 
         int novoId = gerarProximoId();
 
@@ -88,6 +88,60 @@ public class AppMusica implements AutoCloseable {
         System.out.println("Música e Género associados com sucesso!");
     }
 
+    public static void associarAlbum(int musicaId, String nomeAlbum, int anoAlbum, int ordemNoAlbum) throws SQLException {
+        // 1. Verificar se o álbum já existe pelo nome
+        Integer albumId = null;
+        String sqlBusca = "SELECT id FROM album WHERE nome = ?";
+
+        try (PreparedStatement stm = conn.prepareStatement(sqlBusca)) {
+            stm.setString(1, nomeAlbum);
+            try (ResultSet rs = stm.executeQuery()) {
+                if (rs.next()) {
+                    albumId = rs.getInt("id");
+                }
+            }
+        }
+
+        // 2. Se não existir, cria o álbum (Garante a existência)
+        if (albumId == null) {
+            albumId = gerarProximoIdAlbum();
+            String sqlInsAlbum = "INSERT INTO album (id, nome, anoalbum) VALUES (?, ?, ?)";
+            try (PreparedStatement stm = conn.prepareStatement(sqlInsAlbum)) {
+                stm.setInt(1, albumId);
+                stm.setString(2, nomeAlbum);
+                stm.setInt(3, anoAlbum);
+                stm.executeUpdate();
+                System.out.println("Novo álbum '" + nomeAlbum + "' criado.");
+            }
+        }
+
+        // 3. Atualizar a coluna 'ordem' na tabela 'musica' (que você já possui)
+        String sqlUpdateOrdem = "UPDATE musica SET ordem = ? WHERE id = ?";
+        try (PreparedStatement stm = conn.prepareStatement(sqlUpdateOrdem)) {
+            stm.setInt(1, ordemNoAlbum);
+            stm.setInt(2, musicaId);
+            stm.executeUpdate();
+        }
+
+        // 4. Criar a ligação na tabela musica_album
+        String sqlLigacao = "INSERT INTO musica_album (musica_id, album_id) VALUES (?, ?)";
+        try (PreparedStatement stm = conn.prepareStatement(sqlLigacao)) {
+            stm.setInt(1, musicaId);
+            stm.setInt(2, albumId);
+            stm.executeUpdate();
+            System.out.println("Música associada ao álbum '" + nomeAlbum + "' na posição " + ordemNoAlbum + ".");
+        }
+    }
+
+    // Metodo auxiliar para IDs de álbuns
+    public static int gerarProximoIdAlbum() throws SQLException {
+        String sql = "SELECT MAX(id) FROM album";
+        try (PreparedStatement stm = conn.prepareStatement(sql);
+             ResultSet rs = stm.executeQuery()) {
+            return rs.next() ? rs.getInt(1) + 1 : 1;
+        }
+    }
+
     // Metodo para verificar se o autor existe. Se não existir, ele cria.
     public static void garantirExistenciaAutor(String nomeAutor) throws SQLException {
         String sqlBusca = "SELECT nome FROM autor WHERE nome = ?";
@@ -118,22 +172,30 @@ public class AppMusica implements AutoCloseable {
     }
 
     public static Map<String, Object> buscarMusicaPorId(int idBusca) throws SQLException {
-        String sql = "SELECT id, titulo, anoMusica, autor_nome FROM musica WHERE id = ?";
+        // SQL com JOIN para buscar tudo de uma vez
+        String sql = "SELECT m.*, g.genero_nome, alb.nome AS album_nome " +
+                "FROM musica m " +
+                "LEFT JOIN genero_musica g ON m.id = g.musica_id " +
+                "LEFT JOIN musica_album ma ON m.id = ma.musica_id " +
+                "LEFT JOIN album alb ON ma.album_id = alb.id " +
+                "WHERE m.id = ?";
 
         try (PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, idBusca);
-
             try (ResultSet rs = stm.executeQuery()) {
                 if (rs.next()) {
                     Map<String, Object> registro = new HashMap<>();
-                    // Guardamos cada coluna no Map
                     registro.put("id", rs.getInt("id"));
-                    registro.put("titulo", rs.getString("titulo"));
-                    registro.put("ano", rs.getInt("anoMusica"));
+                    registro.put("titulo", rs.getString("titulo").trim()); // .trim() para limpar espaços do CHAR
+                    registro.put("ano", rs.getInt("anomusica"));
                     registro.put("autor", rs.getString("autor_nome"));
+                    registro.put("ordem", rs.getInt("ordem"));
 
+                    // Informações extras pedidas no enunciado
+                    registro.put("genero", rs.getString("genero_nome"));
+                    registro.put("album", rs.getString("album_nome"));
 
-                    return registro  ;
+                    return registro;
                 }
             }
         }
@@ -161,23 +223,50 @@ public class AppMusica implements AutoCloseable {
     }
 
     public static void deletarMusica(int idMusica) throws SQLException {
-        String sql = "DELETE FROM musica WHERE id = ?";
-
-        try (PreparedStatement stm = conn.prepareStatement(sql)) {
+        // 1. Verificar se a música pertence a um álbum antes de apagar
+        Integer idAlbum = null;
+        String sqlCheck = "SELECT album_id FROM musica_album WHERE musica_id = ?";
+        try (PreparedStatement stm = conn.prepareStatement(sqlCheck)) {
             stm.setInt(1, idMusica);
+            ResultSet rs = stm.executeQuery();
+            if (rs.next()) idAlbum = rs.getInt("album_id");
+        }
 
-            int linhasAfetadas = stm.executeUpdate();
+        // 2. Apagar primeiro as ligações (FKs) para não dar erro
+        try (PreparedStatement stmG = conn.prepareStatement("DELETE FROM genero_musica WHERE musica_id = ?");
+             PreparedStatement stmA = conn.prepareStatement("DELETE FROM musica_album WHERE musica_id = ?")) {
+            stmG.setInt(1, idMusica); stmG.executeUpdate();
+            stmA.setInt(1, idMusica); stmA.executeUpdate();
+        }
 
-            if (linhasAfetadas > 0) {
-                System.out.println("Sucesso: A música com ID " + idMusica + " foi removida.");
-            } else {
-                System.out.println("Aviso: Nenhuma música encontrada com o ID " + idMusica + " para remover.");
+        // 3. Apaga música
+        String sqlDel = "DELETE FROM musica WHERE id = ?";
+        try (PreparedStatement stm = conn.prepareStatement(sqlDel)) {
+            stm.setInt(1, idMusica);
+            if (stm.executeUpdate() > 0) {
+                System.out.println("Música removida.");
+
+                // 4. Se pertencia a álbum, verifica se ele ficou vazio
+                if (idAlbum != null) {
+                    String sqlCount = "SELECT COUNT(*) FROM musica_album WHERE album_id = ?";
+                    try (PreparedStatement stmC = conn.prepareStatement(sqlCount)) {
+                        stmC.setInt(1, idAlbum);
+                        ResultSet rsC = stmC.executeQuery();
+                        if (rsC.next() && rsC.getInt(1) == 0) {
+                            try (PreparedStatement stmDA = conn.prepareStatement("DELETE FROM album WHERE id = ?")) {
+                                stmDA.setInt(1, idAlbum);
+                                stmDA.executeUpdate();
+                                System.out.println("Álbum vazio removido.");
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
     public static void exibirDetalhesMusica(int idMusica) throws SQLException {
-        // Reutiliza o metodo de busca criado antes
+        // Reutiliza o metodo de busca
         Map<String, Object> musica = buscarMusicaPorId(idMusica);
 
         System.out.println("\n=== DETALHES DA MÚSICA ===");
@@ -186,6 +275,9 @@ public class AppMusica implements AutoCloseable {
             System.out.println("Título:    " + musica.get("titulo"));
             System.out.println("Ano:       " + musica.get("ano"));
             System.out.println("Autor:     " + musica.get("autor"));
+            System.out.println("Gênero:    " + (musica.get("genero") != null ? musica.get("genero") : "N/A"));
+            System.out.println("Álbum:     " + (musica.get("album") != null ? musica.get("album") : "N/A"));
+            System.out.println("Ordem:     " + musica.get("ordem"));
             System.out.println("==========================\n");
         } else {
             System.out.println("Erro: Música com ID " + idMusica + " não encontrada na base de dados.");
@@ -193,7 +285,7 @@ public class AppMusica implements AutoCloseable {
         }
     }
 
-    private static int gerarProximoId() throws SQLException {
+    public static int gerarProximoId() throws SQLException {
         // Busca o maior ID atual na tabela musica
         String sql = "SELECT MAX(id) FROM musica";
 

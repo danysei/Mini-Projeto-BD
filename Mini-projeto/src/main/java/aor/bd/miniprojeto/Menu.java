@@ -21,7 +21,12 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
         System.out.println("4 - Consultar detalhes de uma Música");
         System.out.println("0 - Sair");
         System.out.print("Opção: ");
-        opcao = teclado.nextInt();
+        try {
+            opcao = teclado.nextInt();
+        }catch (NumberFormatException e) {
+            System.out.println("Erro: Insira apenas números!");
+            opcao = -1;
+        }
 
         switch (opcao){
 
@@ -47,6 +52,8 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
 
     public static void MenuAdicionarMusica(Scanner teclado) throws SQLException {
 
+         int opcao;
+
         teclado.nextLine();
         System.out.println("-----Adicionar Música-----");
         System.out.print("Titulo: ");
@@ -59,8 +66,13 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
         System.out.println("Pretende adicionar género?");
         System.out.println("1-Sim\n" + "2-Não");
         System.out.print("Opção: ");
-        int opcao = teclado.nextInt();
-        teclado.nextLine();
+        try {
+            opcao = teclado.nextInt();
+            teclado.nextLine();
+        }catch (NumberFormatException e) {
+            System.out.println("Erro: Insira apenas números!");
+            opcao = -1;
+        }
         if (opcao==1){
             System.out.print("Género: ");
             String genero = teclado.nextLine();
@@ -69,15 +81,40 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
             AppMusica.adicionarMusica(titulo,ano,autor);
         }
 
+        // Dentro do MenuAdicionarMusica, após adicionar a música:
+        System.out.println("Pretende associar a um álbum?");
+        System.out.println("1-Sim\n2-Não");
+        if (teclado.nextInt() == 1) {
+            teclado.nextLine(); // Limpar buffer
+            System.out.print("Nome do Álbum: ");
+            String album = teclado.nextLine();
+            System.out.print("Ano do Álbum: ");
+            int anoAlb = teclado.nextInt();
+            System.out.print("Número de ordem no álbum: ");
+            int ordem = teclado.nextInt();
+
+            // Pegar o ID da música que acabamos de criar (pode usar o MAX(id) ou retornar do metodo add)
+            int idMusica = AppMusica.gerarProximoId() - 1;
+            AppMusica.associarAlbum(idMusica, album, anoAlb, ordem);
+        }
+
     }
 
     public static void MenuEditarMusica(Scanner teclado) throws SQLException {
 
+        int id;
+
         System.out.println("----Editar Música----");
         System.out.println("Qual o ID da música a editar?");
         System.out.print("ID: ");
-        int id = teclado.nextInt();
-        teclado.nextLine();
+
+        try {
+            id = teclado.nextInt();
+            teclado.nextLine();
+        }catch (NumberFormatException e) {
+            System.out.println("Erro: Insira apenas números!");
+            id = -1;
+        }
         System.out.println("Detalhes da música selecionada");
         Map<String,Object> musica = AppMusica.buscarMusicaPorId(id);
 
@@ -86,17 +123,25 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
             System.out.print("Novo titúlo: ");
             String tituloNovo = teclado.nextLine();
             AppMusica.editarTituloMusica(id,tituloNovo);
+            teclado.nextLine();
         }
     }
 
     public static void MenuRemoverMusica(Scanner teclado) throws SQLException{
 
+        int id;
         System.out.println("------- Remover Música-------");
 
         System.out.println("Qual o ID da música a remover?");
         System.out.print("ID: ");
-        int id = teclado.nextInt();
-        teclado.nextLine();
+
+        try {
+            id = teclado.nextInt();
+            teclado.nextLine();
+        }catch (NumberFormatException e) {
+            System.out.println("Erro: Insira apenas números!");
+            id = -1;
+        }
 
         Map<String,Object> musica = AppMusica.buscarMusicaPorId(id);
         if (musica != null){
@@ -106,12 +151,18 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
 
     public static void MenuExibirDetalhes(Scanner teclado) throws  SQLException{
 
+        int id;
         System.out.println("------- Detalhes de Música-------");
 
         System.out.println("Qual o ID da música?");
         System.out.print("ID: ");
-        int id = teclado.nextInt();
-        teclado.nextLine();
+        try {
+            id = teclado.nextInt();
+            teclado.nextLine();
+        } catch (NumberFormatException e) {
+            System.out.println("Erro: Insira apenas números!");
+            id = -1;
+        }
 
          AppMusica.exibirDetalhesMusica(id);
     }
