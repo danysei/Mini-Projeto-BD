@@ -29,9 +29,9 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
             }
             case 2 -> { MenuEditarMusica(teclado);
             }
-            case 3 -> { // Remover
+            case 3 -> { MenuRemoverMusica(teclado);// Remover
             }
-            case 4 -> { //Consultar
+            case 4 -> { MenuExibirDetalhes(teclado);//Consultar
             }
             case 0 -> System.out.println("A encerrar...");
             default -> System.out.println("Opção inválida! Tente novamente!");
@@ -88,4 +88,32 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
             AppMusica.editarTituloMusica(id,tituloNovo);
         }
     }
+
+    public static void MenuRemoverMusica(Scanner teclado) throws SQLException{
+
+        System.out.println("------- Remover Música-------");
+
+        System.out.println("Qual o ID da música a remover?");
+        System.out.print("ID: ");
+        int id = teclado.nextInt();
+        teclado.nextLine();
+
+        Map<String,Object> musica = AppMusica.buscarMusicaPorId(id);
+        if (musica != null){
+            AppMusica.deletarMusica(id);
+        }
+    }
+
+    public static void MenuExibirDetalhes(Scanner teclado) throws  SQLException{
+
+        System.out.println("------- Detalhes de Música-------");
+
+        System.out.println("Qual o ID da música?");
+        System.out.print("ID: ");
+        int id = teclado.nextInt();
+        teclado.nextLine();
+
+         AppMusica.exibirDetalhesMusica(id);
+    }
+
 }
