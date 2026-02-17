@@ -6,9 +6,9 @@ import java.util.Map;
 
 public class AppMusica implements AutoCloseable {
 
-    private final static String URL = "jdbc:postgresql://localhost:5432/projeto_musicas";
+    private final static String URL = "jdbc:postgresql://localhost:5455/projeto_musicas";
     private final static String USER = "postgres";
-    private final static String PASSWORD = "Catara100.";
+    private final static String PASSWORD = "postgres";
     private static Connection conn;
 
 
