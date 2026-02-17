@@ -1,6 +1,7 @@
 package aor.bd.miniprojeto;
 
 import java.sql.SQLException;
+import java.util.InputMismatchException;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -52,7 +53,8 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
 
     public static void MenuAdicionarMusica(Scanner teclado) throws SQLException {
 
-         int opcao;
+        int opcao = -1;
+        int opcao2 = -1;
 
         teclado.nextLine();
         System.out.println("-----Adicionar Música-----");
@@ -63,41 +65,54 @@ public void MenuPrincipal(Scanner teclado) throws SQLException {
         teclado.nextLine();
         System.out.print("Autor: ");
         String autor = teclado.nextLine();
-        System.out.println("Pretende adicionar género?");
-        System.out.println("1-Sim\n" + "2-Não");
-        System.out.print("Opção: ");
-        try {
-            opcao = teclado.nextInt();
-            teclado.nextLine();
-        }catch (NumberFormatException e) {
-            System.out.println("Erro: Insira apenas números!");
-            opcao = -1;
-        }
-        if (opcao==1){
-            System.out.print("Género: ");
-            String genero = teclado.nextLine();
-            AppMusica.adicionarMusicaComGenero(titulo,ano,autor,genero);
-        }else {
-            AppMusica.adicionarMusica(titulo,ano,autor);
-        }
+
+        do{
+            System.out.println("Pretende adicionar género?");
+            System.out.println("1-Sim\n" + "2-Não");
+            System.out.print("Opção: ");
+            try {
+                opcao = teclado.nextInt();
+                teclado.nextLine();
+            } catch (InputMismatchException e) {
+                System.out.println("Erro: Insira apenas números!");
+                opcao = -1;
+                continue;
+            }
+            if (opcao == 1) {
+                System.out.print("Género: ");
+                String genero = teclado.nextLine();
+                AppMusica.adicionarMusicaComGenero(titulo, ano, autor, genero);
+            } else if (opcao == 2) {
+                AppMusica.adicionarMusica(titulo, ano, autor);
+
+            }
+
+        }while (opcao > 2 );
 
         // Dentro do MenuAdicionarMusica, após adicionar a música:
-        System.out.println("Pretende associar a um álbum?");
-        System.out.println("1-Sim\n2-Não");
-        if (teclado.nextInt() == 1) {
-            teclado.nextLine(); // Limpar buffer
-            System.out.print("Nome do Álbum: ");
-            String album = teclado.nextLine();
-            System.out.print("Ano do Álbum: ");
-            int anoAlb = teclado.nextInt();
-            System.out.print("Número de ordem no álbum: ");
-            int ordem = teclado.nextInt();
 
-            // Pegar o ID da música que acabamos de criar (pode usar o MAX(id) ou retornar do metodo add)
-            int idMusica = AppMusica.gerarProximoId() - 1;
-            AppMusica.associarAlbum(idMusica, album, anoAlb, ordem);
-        }
+        do {
+            System.out.println("Pretende associar a um álbum?");
+            System.out.println("1-Sim\n2-Não");
+            System.out.print("Opção: ");
+            opcao2 = teclado.nextInt();
 
+            if (opcao2 == 1) {
+                teclado.nextLine(); // Limpar buffer
+                System.out.print("Nome do Álbum: ");
+                String album = teclado.nextLine();
+                System.out.print("Ano do Álbum: ");
+                int anoAlb = teclado.nextInt();
+                System.out.print("Número de ordem no álbum: ");
+                int ordem = teclado.nextInt();
+
+                // Pegar o ID da música que acabamos de criar (pode usar o MAX(id) ou retornar do metodo add)
+                int idMusica = AppMusica.gerarProximoId() - 1;
+                AppMusica.associarAlbum(idMusica, album, anoAlb, ordem);
+            }
+
+
+        }while (opcao2 != 1);
     }
 
     public static void MenuEditarMusica(Scanner teclado) throws SQLException {
